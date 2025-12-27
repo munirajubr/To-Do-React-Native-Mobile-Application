@@ -1,421 +1,254 @@
+import { useEffect, useState, useCallback } from 'react';
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
-  Image,
-  Modal,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { useRouter } from "expo-router";
-import DraggableFlatList from "react-native-draggable-flatlist";
-import DateTimePicker from "@react-native-community/datetimepicker";
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../store/authStore';
+import { endpoints } from '../../constants/api';
+import COLORS from '../../constants/colors';
 
-/* ---------------- SAMPLE TASKS ---------------- */
-const SAMPLE_TASKS = [
-  { _id: "1", title: "Design Home Screen UI", status: "pending" },
-  { _id: "2", title: "Integrate Task API", status: "pending" },
-  { _id: "3", title: "Fix Navigation Bugs", status: "completed" },
-];
+export default function Tasks() {
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const username = user?.username;
 
-export default function HomeScreen() {
-  const router = useRouter();
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const [tasks, setTasks] = useState(SAMPLE_TASKS);
-  const [showAddTask, setShowAddTask] = useState(false);
+  const fetchTasks = useCallback(async () => {
+    if (!username) return;
+    try {
+      setLoading(true);
+      const res = await fetch(endpoints.tasksByUser(username));
+      if (!res.ok) {
+        const text = await res.text();
+        console.log('Fetch tasks error body:', text);
+        throw new Error('Failed to load tasks');
+      }
+      const json = await res.json();
+      setTasks(Array.isArray(json) ? json : []);
+    } catch (e) {
+      console.log('Fetch tasks error:', e);
+      Alert.alert('Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [username]);
 
-  // Add Task form state
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState(null);
-  const [deadline, setDeadline] = useState(null);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
-  /* ---------- SPLIT TASKS ---------- */
-  const pendingTasks = tasks.filter(t => t.status === "pending");
-  const completedTasks = tasks.filter(t => t.status === "completed");
-
-  /* ---------- TOGGLE COMPLETE ---------- */
-  const toggleTask = (taskId) => {
-    setTasks(prev =>
-      prev.map(task =>
-        task._id === taskId
-          ? {
-              ...task,
-              status:
-                task.status === "pending" ? "completed" : "pending",
-            }
-          : task
-      )
-    );
+  const handleCompleteToggle = async (item) => {
+    if (!username) return;
+    if (item.status === 'completed') {
+      Alert.alert('Info', 'Toggle to pending API not implemented yet');
+      return;
+    }
+    try {
+      const res = await fetch(endpoints.completeTask(username, item._id), {
+        method: 'PATCH',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        console.log('Complete task error body:', text);
+        throw new Error('Failed to complete task');
+      }
+      await fetchTasks();
+    } catch (e) {
+      console.log('Complete task error:', e);
+      Alert.alert('Error', e.message);
+    }
   };
 
-  /* ---------- REORDER (PENDING ONLY) ---------- */
-  const onDragEnd = ({ data }) => {
-    setTasks([...data, ...completedTasks]);
+  const handleDelete = async (id) => {
+    if (!username) return;
+    try {
+      const res = await fetch(endpoints.deleteTask(username, id), {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        console.log('Delete task error body:', text);
+        throw new Error('Failed to delete task');
+      }
+      await fetchTasks();
+    } catch (e) {
+      console.log('Delete task error:', e);
+      Alert.alert('Error', e.message);
+    }
   };
 
-  /* ---------- ADD TASK ---------- */
-  const handleAddTask = () => {
-    if (!title || !startDate || !deadline) return;
-
-    setTasks(prev => [
-      ...prev,
-      {
-        _id: Date.now().toString(),
-        title,
-        status: "pending",
-      },
-    ]);
-
-    // reset
-    setTitle("");
-    setDescription("");
-    setStartDate(null);
-    setDeadline(null);
-    setShowAddTask(false);
+  const handleAddPress = () => {
+    // TODO: navigate to your Add Task screen or open modal
+    Alert.alert('Add Task', 'Open add task screen / bottom sheet here');
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.heading}>My Tasks</Text>
-          <Text style={styles.subHeading}>
-            Drag to reorder • Tap to complete
+  const renderItem = ({ item }) => {
+    const completed = item.status === 'completed';
+    return (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: COLORS.cardBackground,
+          paddingVertical: 10,
+          paddingHorizontal: 12,
+          borderRadius: 16,
+          marginVertical: 6,
+          shadowColor: COLORS.black,
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 2,
+        }}
+      >
+        {/* Checkbox */}
+        <TouchableOpacity
+          onPress={() => handleCompleteToggle(item)}
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: COLORS.textDark,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 12,
+            backgroundColor: completed ? COLORS.primary : COLORS.white,
+          }}
+        >
+          {completed && (
+            <Ionicons name="checkmark" size={16} color={COLORS.white} />
+          )}
+        </TouchableOpacity>
+
+        {/* Title */}
+        <View style={{ flex: 1 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: COLORS.textDark,
+              fontSize: 16,
+              textDecorationLine: completed ? 'line-through' : 'none',
+            }}
+          >
+            {item.title}
           </Text>
         </View>
 
+        {/* Menu icon (long press to delete) */}
         <TouchableOpacity
-          onPress={() => router.push("/(pages)/profile")}
+          onLongPress={() => handleDelete(item._id)}
+          style={{ marginLeft: 8 }}
         >
-          <Image
-            source={{
-              uri: "https://xsgames.co/randomusers/avatar.php?g=male",
+          <Ionicons
+            name="menu"
+            size={20}
+            color={COLORS.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: COLORS.background,
+        paddingHorizontal: 16,
+        paddingTop: 40,
+      }}
+    >
+      {/* Header */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 24,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: '700',
+              color: COLORS.textDark,
             }}
-            style={styles.avatar}
+          >
+            My Tasks
+          </Text>
+          <Text style={{ color: COLORS.textSecondary, marginTop: 4 }}>
+            Track your daily tasks
+          </Text>
+        </View>
+
+        {/* Profile icon */}
+        <TouchableOpacity
+          onPress={logout}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: COLORS.cardBackground,
+          }}
+        >
+          <Ionicons
+            name="person-outline"
+            size={20}
+            color={COLORS.textPrimary}
           />
         </TouchableOpacity>
       </View>
 
-      {/* PENDING TASKS */}
-      <DraggableFlatList
-        data={pendingTasks}
+      {/* Tasks list */}
+      <FlatList
+        data={tasks}
         keyExtractor={(item) => item._id}
-        onDragEnd={onDragEnd}
-        renderItem={({ item, drag, isActive }) => (
-          <TouchableOpacity
-            onLongPress={drag}
-            disabled={isActive}
-            style={[
-              styles.taskCard,
-              isActive && { backgroundColor: "#ddd" },
-            ]}
-          >
-            <View style={styles.taskLeft}>
-              <TouchableOpacity onPress={() => toggleTask(item._id)}>
-                <Ionicons
-                  name="square-outline"
-                  size={24}
-                  color="#333"
-                />
-              </TouchableOpacity>
-
-              <Text style={styles.taskText}>{item.title}</Text>
-            </View>
-
-            <Ionicons
-              name="reorder-three-outline"
-              size={24}
-              color="#555"
-            />
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
+        onRefresh={fetchTasks}
+        refreshing={loading}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
 
-      {/* COMPLETED TASKS */}
-      {completedTasks.length > 0 && (
-        <Text style={styles.completedHeading}>Completed</Text>
-      )}
-
-      {completedTasks.map(task => (
-        <View
-          key={task._id}
-          style={[styles.taskCard, styles.completedTask]}
-        >
-          <View style={styles.taskLeft}>
-            <TouchableOpacity onPress={() => toggleTask(task._id)}>
-              <Ionicons
-                name="checkbox"
-                size={24}
-                color="#777"
-              />
-            </TouchableOpacity>
-
-            <Text style={styles.completedText}>
-              {task.title}
-            </Text>
-          </View>
-        </View>
-      ))}
-
-      {/* ADD TASK FAB */}
+      {/* Floating Add Task button */}
       <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowAddTask(true)}
+        onPress={handleAddPress}
+        style={{
+          position: 'absolute',
+          right: 16,
+          bottom: 24,
+          backgroundColor: COLORS.primary,
+          paddingHorizontal: 22,
+          paddingVertical: 14,
+          borderRadius: 24,
+          flexDirection: 'row',
+          alignItems: 'center',
+          shadowColor: COLORS.black,
+          shadowOpacity: 0.15,
+          shadowRadius: 6,
+          elevation: 4,
+        }}
       >
-        <Ionicons name="add" size={32} color="#fff" />
+        <Ionicons name="add" size={20} color={COLORS.white} />
+        <Text
+          style={{
+            color: COLORS.white,
+            marginLeft: 8,
+            fontWeight: '600',
+          }}
+        >
+          Add Task
+        </Text>
       </TouchableOpacity>
-
-      {/* ADD TASK MODAL (BOTTOM SHEET) */}
-      <Modal
-        visible={showAddTask}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-      >
-        <View style={styles.modalRoot}>
-          {/* Overlay */}
-          <Pressable
-            style={styles.backdrop}
-            onPress={() => setShowAddTask(false)}
-          />
-
-          {/* Bottom Sheet */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.sheetWrapper}
-          >
-            <View style={styles.sheet}>
-              <View style={styles.handle} />
-
-              <Text style={styles.sheetTitle}>Add New Task</Text>
-
-              <TextInput
-                placeholder="Task title *"
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-              />
-
-              <TextInput
-                placeholder="Description"
-                style={styles.input}
-                value={description}
-                onChangeText={setDescription}
-              />
-
-              <TouchableOpacity
-                style={styles.dateInput}
-                onPress={() => setShowStartPicker(true)}
-              >
-                <Ionicons name="calendar-outline" size={20} />
-                <Text>
-                  {startDate
-                    ? new Date(startDate).toDateString()
-                    : "Select Start Date *"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.dateInput}
-                onPress={() => setShowDeadlinePicker(true)}
-              >
-                <Ionicons name="calendar-outline" size={20} />
-                <Text>
-                  {deadline
-                    ? new Date(deadline).toDateString()
-                    : "Select Deadline *"}
-                </Text>
-              </TouchableOpacity>
-
-              {showStartPicker && (
-                <DateTimePicker
-                  value={startDate ? new Date(startDate) : new Date()}
-                  mode="date"
-                  onChange={(e, date) => {
-                    setShowStartPicker(false);
-                    if (e.type === "set" && date)
-                      setStartDate(date.toISOString());
-                  }}
-                />
-              )}
-
-              {showDeadlinePicker && (
-                <DateTimePicker
-                  value={deadline ? new Date(deadline) : new Date()}
-                  mode="date"
-                  onChange={(e, date) => {
-                    setShowDeadlinePicker(false);
-                    if (e.type === "set" && date)
-                      setDeadline(date.toISOString());
-                  }}
-                />
-              )}
-
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  (!title || !startDate || !deadline) && {
-                    opacity: 0.5,
-                  },
-                ]}
-                disabled={!title || !startDate || !deadline}
-                onPress={handleAddTask}
-              >
-                <Text style={styles.saveText}>Save Task</Text>
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
-
-/* ---------------- STYLES ---------------- */
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f2f2f2",
-  },
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  subHeading: {
-    color: "#777",
-    marginTop: 2,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-  },
-
-  taskCard: {
-    backgroundColor: "#eaeaea",
-    padding: 14,
-    borderRadius: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  taskLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  taskText: {
-    fontSize: 16,
-    flex: 1,
-  },
-
-  completedHeading: {
-    marginTop: 20,
-    marginBottom: 10,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#777",
-  },
-  completedTask: {
-    opacity: 0.5,
-  },
-  completedText: {
-    fontSize: 16,
-    textDecorationLine: "line-through",
-    color: "#777",
-  },
-
-  fab: {
-    position: "absolute",
-    right: 24,
-    bottom: 30,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#083b52ff",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 6,
-  },
-
-  modalRoot: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  backdrop: {
-    flex: 1,
-  },
-  sheetWrapper: {
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 30,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#ccc",
-    alignSelf: "center",
-    marginBottom: 10,
-  },
-  sheetTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-  },
-  dateInput: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  saveBtn: {
-    backgroundColor: "#083b52ff",
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  saveText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
