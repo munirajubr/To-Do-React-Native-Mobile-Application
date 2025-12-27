@@ -7,6 +7,8 @@ export const endpoints = {
   addTask: `${BASE_URL}/tasks`,
   completeTask: (username, id) =>
     `${BASE_URL}/tasks/${username}/${id}/complete`,
+  pendingTask: (username, id) =>
+    `${BASE_URL}/tasks/${username}/${id}/pending`,
   deleteTask: (username, id) =>
     `${BASE_URL}/tasks/${username}/${id}`,
 };

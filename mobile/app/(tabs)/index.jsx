@@ -1,18 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  Alert,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../../store/authStore';
-import { endpoints } from '../../constants/api';
-import COLORS from '../../constants/colors';
-import AddTask from '../../components/AddTask';
-import { useRouter } from 'expo-router';
-
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, Alert, TouchableOpacity, FlatList } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuthStore } from "../../store/authStore";
+import { endpoints } from "../../constants/api";
+import COLORS from "../../constants/colors";
+import AddTask from "../../components/AddTask";
+import { useRouter } from "expo-router";
 
 export default function Tasks() {
   const user = useAuthStore((s) => s.user);
@@ -31,13 +24,13 @@ export default function Tasks() {
       const res = await fetch(endpoints.tasksByUser(username));
       if (!res.ok) {
         const text = await res.text();
-        console.log('Fetch tasks error body:', text);
-        throw new Error('Failed to load tasks');
+        console.log("Fetch tasks error body:", text);
+        throw new Error("Failed to load tasks");
       }
       const json = await res.json();
       setTasks(Array.isArray(json) ? json : []);
     } catch (e) {
-      Alert.alert('Error', e.message);
+      Alert.alert("Error", e.message);
     } finally {
       setLoading(false);
     }
@@ -49,20 +42,26 @@ export default function Tasks() {
 
   const handleCheckboxPress = async (item) => {
     if (!username) return;
-    if (item.status === 'completed') return;
+
+    const isCompleted = item.status === "completed";
+    const url = isCompleted
+      ? endpoints.pendingTask(username, item._id) // make pending
+      : endpoints.completeTask(username, item._id); // make completed
 
     try {
-      const res = await fetch(endpoints.completeTask(username, item._id), {
-        method: 'PATCH',
+      const res = await fetch(url, {
+        method: "PATCH",
       });
+
       if (!res.ok) {
         const text = await res.text();
-        console.log('Complete task error body:', text);
-        throw new Error('Failed to update status');
+        console.log("Toggle task status error body:", text);
+        throw new Error("Failed to update status");
       }
+
       await fetchTasks();
     } catch (e) {
-      Alert.alert('Error', e.message);
+      Alert.alert("Error", e.message);
     }
   };
 
@@ -70,36 +69,32 @@ export default function Tasks() {
     if (!username) return;
     try {
       const res = await fetch(endpoints.deleteTask(username, id), {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!res.ok) {
         const text = await res.text();
-        console.log('Delete task error body:', text);
-        throw new Error('Failed to delete task');
+        console.log("Delete task error body:", text);
+        throw new Error("Failed to delete task");
       }
       await fetchTasks();
     } catch (e) {
-      Alert.alert('Error', e.message);
+      Alert.alert("Error", e.message);
     }
   };
 
   const renderItem = ({ item }) => {
-    const completed = item.status === 'completed';
+    const completed = item.status === "completed";
 
     return (
       <View
         style={{
-          backgroundColor: COLORS.cardBackground,
-          borderRadius: 16,
+          backgroundColor: "#f6f6f8", // light grey pill
+          borderRadius: 14,
           paddingVertical: 10,
           paddingHorizontal: 12,
-          marginVertical: 6,
-          flexDirection: 'row',
-          alignItems: 'center',
-          shadowColor: COLORS.black,
-          shadowOpacity: 0.08,
-          shadowRadius: 6,
-          elevation: 2,
+          marginVertical: 5,
+          flexDirection: "row",
+          alignItems: "center",
         }}
       >
         {/* Checkbox */}
@@ -110,10 +105,10 @@ export default function Tasks() {
             height: 22,
             borderRadius: 6,
             borderWidth: 2,
-            borderColor: COLORS.textDark,
-            backgroundColor: completed ? COLORS.primary : COLORS.white,
-            alignItems: 'center',
-            justifyContent: 'center',
+            borderColor: completed ? COLORS.primary : "#444",
+            backgroundColor: completed ? COLORS.primary : COLORS.background,
+            alignItems: "center",
+            justifyContent: "center",
             marginRight: 10,
           }}
         >
@@ -127,21 +122,21 @@ export default function Tasks() {
           <Text
             numberOfLines={1}
             style={{
-              color: COLORS.textDark,
               fontSize: 15,
-              textDecorationLine: completed ? 'line-through' : 'none',
+              color: completed ? COLORS.textSecondary : COLORS.textDark,
+              textDecorationLine: completed ? "line-through" : "none",
             }}
           >
             {item.title}
           </Text>
         </View>
 
-        {/* (Optional) Delete icon */}
+        {/* Drag handle‑style icon / menu */}
         <TouchableOpacity
           onPress={() => handleDelete(item._id)}
-          style={{ marginLeft: 8 }}
+          style={{ marginLeft: 8, paddingHorizontal: 4, paddingVertical: 4 }}
         >
-          <Ionicons name="trash-outline" size={18} color="#ff3b3b" />
+          <Ionicons name="menu" size={18} color={COLORS.textSecondary} />
         </TouchableOpacity>
       </View>
     );
@@ -159,8 +154,8 @@ export default function Tasks() {
       {/* Header */}
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: "row",
+          alignItems: "center",
           marginBottom: 16,
         }}
       >
@@ -168,7 +163,7 @@ export default function Tasks() {
           <Text
             style={{
               fontSize: 26,
-              fontWeight: '700',
+              fontWeight: "700",
               color: COLORS.textDark,
             }}
           >
@@ -180,15 +175,15 @@ export default function Tasks() {
         </View>
 
         <TouchableOpacity
-          onPress={() => router.push('/profile')}
+          onPress={() => router.push("/profile")}
           style={{
             width: 36,
             height: 36,
             borderRadius: 18,
             borderWidth: 1,
             borderColor: COLORS.border,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             backgroundColor: COLORS.cardBackground,
           }}
         >
@@ -214,14 +209,14 @@ export default function Tasks() {
       <View
         pointerEvents="box-none"
         style={{
-          position: 'absolute',
+          position: "absolute",
           right: 16,
           bottom: 24,
         }}
       >
         <TouchableOpacity
           onPress={() => {
-            console.log('Add Task pressed');
+            console.log("Add Task pressed");
             setAddVisible(true);
           }}
           style={{
@@ -229,8 +224,8 @@ export default function Tasks() {
             paddingHorizontal: 26,
             paddingVertical: 12,
             borderRadius: 20,
-            flexDirection: 'row',
-            alignItems: 'center',
+            flexDirection: "row",
+            alignItems: "center",
             shadowColor: COLORS.black,
             shadowOpacity: 0.15,
             shadowRadius: 6,
@@ -242,7 +237,7 @@ export default function Tasks() {
             style={{
               color: COLORS.white,
               marginLeft: 6,
-              fontWeight: '600',
+              fontWeight: "600",
             }}
           >
             Add Task
