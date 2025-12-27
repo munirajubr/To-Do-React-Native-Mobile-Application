@@ -93,6 +93,25 @@ router.patch("/:username/:taskId/complete", async (req, res) => {
 });
 
 /* --------------------------------------------------
+   TOGGLE PENDING TASK
+   PATCH /api/tasks/:username/:taskId/pending
+-------------------------------------------------- */
+
+router.patch('/:username/:taskId/pending', async (req, res) => {
+  const { username, taskId } = req.params;
+  const user = await User.findOne({ username });
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  const task = user.tasks.id(taskId);
+  if (!task) return res.status(404).json({ message: 'Task not found' });
+
+  task.status = 'pending';
+  await user.save();
+  return res.status(200).json({ message: 'Task marked as pending', task });
+});
+
+
+/* --------------------------------------------------
    DELETE TASK
    DELETE /api/tasks/:username/:taskId
 -------------------------------------------------- */
