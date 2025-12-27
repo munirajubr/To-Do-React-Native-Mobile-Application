@@ -5,6 +5,7 @@ import { useAuthStore } from "../../store/authStore";
 import { endpoints } from "../../constants/api";
 import COLORS from "../../constants/colors";
 import AddTask from "../../components/AddTask";
+import TaskDetails from "../../components/TaskDetails";
 import { useRouter } from "expo-router";
 
 export default function Tasks() {
@@ -15,6 +16,10 @@ export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addVisible, setAddVisible] = useState(false);
+
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+
   const router = useRouter();
 
   const fetchTasks = useCallback(async () => {
@@ -76,69 +81,83 @@ export default function Tasks() {
         console.log("Delete task error body:", text);
         throw new Error("Failed to delete task");
       }
+      setDetailsVisible(false);
       await fetchTasks();
     } catch (e) {
       Alert.alert("Error", e.message);
     }
   };
 
+  const handleOpenDetails = (item) => {
+    setSelectedTask(item);
+    setDetailsVisible(true);
+  };
+
   const renderItem = ({ item }) => {
     const completed = item.status === "completed";
 
     return (
-      <View
-        style={{
-          backgroundColor: "#f6f6f8", // light grey pill
-          borderRadius: 14,
-          paddingVertical: 10,
-          paddingHorizontal: 12,
-          marginVertical: 5,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => handleOpenDetails(item)}
       >
-        {/* Checkbox */}
-        <TouchableOpacity
-          onPress={() => handleCheckboxPress(item)}
+        <View
           style={{
-            width: 22,
-            height: 22,
-            borderRadius: 6,
-            borderWidth: 2,
-            borderColor: completed ? COLORS.primary : "#444",
-            backgroundColor: completed ? COLORS.primary : COLORS.background,
+            backgroundColor: "#f6f6f8", // light grey pill
+            borderRadius: 14,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            marginVertical: 5,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            marginRight: 10,
           }}
         >
-          {completed && (
-            <Ionicons name="checkmark" size={14} color={COLORS.white} />
-          )}
-        </TouchableOpacity>
-
-        {/* Title */}
-        <View style={{ flex: 1 }}>
-          <Text
-            numberOfLines={1}
+          {/* Checkbox */}
+          <TouchableOpacity
+            onPress={() => handleCheckboxPress(item)}
             style={{
-              fontSize: 15,
-              color: completed ? COLORS.textSecondary : COLORS.textDark,
-              textDecorationLine: completed ? "line-through" : "none",
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              borderWidth: 2,
+              borderColor: completed ? COLORS.primary : "#444",
+              backgroundColor: completed ? COLORS.primary : COLORS.background,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 10,
             }}
           >
-            {item.title}
-          </Text>
-        </View>
+            {completed && (
+              <Ionicons name="checkmark" size={14} color={COLORS.white} />
+            )}
+          </TouchableOpacity>
 
-        {/* Drag handle‑style icon / menu */}
-        <TouchableOpacity
-          onPress={() => handleDelete(item._id)}
-          style={{ marginLeft: 8, paddingHorizontal: 4, paddingVertical: 4 }}
-        >
-          <Ionicons name="menu" size={18} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-      </View>
+          {/* Title */}
+          <View style={{ flex: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 15,
+                color: completed ? COLORS.textSecondary : COLORS.textDark,
+                textDecorationLine: completed ? "line-through" : "none",
+              }}
+            >
+              {item.title}
+            </Text>
+          </View>
+
+          {/* Burger / reorder icon (no delete here) */}
+          <View
+            style={{ marginLeft: 8, paddingHorizontal: 4, paddingVertical: 4 }}
+          >
+            <Ionicons
+              name="menu"
+              size={18}
+              color={COLORS.textSecondary}
+            />
+          </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -251,6 +270,14 @@ export default function Tasks() {
         visible={addVisible}
         onClose={() => setAddVisible(false)}
         onSuccess={(newTasks) => setTasks(newTasks)}
+      />
+
+      {/* TaskDetails popup */}
+      <TaskDetails
+        visible={detailsVisible}
+        task={selectedTask}
+        onClose={() => setDetailsVisible(false)}
+        onDelete={(id) => handleDelete(id)}
       />
     </View>
   );
