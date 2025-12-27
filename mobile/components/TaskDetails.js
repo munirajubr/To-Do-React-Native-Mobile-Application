@@ -99,14 +99,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   value: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.textDark,
     marginTop: 4,
   },
-  deleteButton: {
+   deleteButton: {
     marginTop: 20,
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "center",      // center horizontally
   },
   deleteText: {
     marginLeft: 6,
