@@ -4,8 +4,8 @@ import {
   Text,
   Alert,
   TouchableOpacity,
+  FlatList,
 } from 'react-native';
-import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { endpoints } from '../../constants/api';
@@ -80,17 +80,11 @@ export default function Tasks() {
     }
   };
 
-  const handleDragEnd = ({ data }) => {
-    setTasks(data);
-  };
-
-  const renderItem = ({ item, drag, isActive }) => {
+  const renderItem = ({ item }) => {
     const completed = item.status === 'completed';
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onLongPress={drag}
+      <View
         style={{
           backgroundColor: COLORS.cardBackground,
           borderRadius: 16,
@@ -103,7 +97,6 @@ export default function Tasks() {
           shadowOpacity: 0.08,
           shadowRadius: 6,
           elevation: 2,
-          opacity: isActive ? 0.9 : 1,
         }}
       >
         {/* Checkbox */}
@@ -140,27 +133,14 @@ export default function Tasks() {
           </Text>
         </View>
 
-        {/* Drag icon */}
+        {/* (Optional) Delete icon */}
         <TouchableOpacity
-          onLongPress={drag}
-          style={{
-            marginLeft: 8,
-            paddingHorizontal: 4,
-            paddingVertical: 4,
-          }}
+          onPress={() => handleDelete(item._id)}
+          style={{ marginLeft: 8 }}
         >
-          <Ionicons
-            name="menu"
-            size={18}
-            color={COLORS.textSecondary}
-          />
-        </TouchableOpacity>
-
-        {/* Optional delete */}
-        {/* <TouchableOpacity onPress={() => handleDelete(item._id)} style={{ marginLeft: 8 }}>
           <Ionicons name="trash-outline" size={18} color="#ff3b3b" />
-        </TouchableOpacity> */}
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -218,19 +198,16 @@ export default function Tasks() {
       </View>
 
       {/* Tasks list */}
-      <View style={{ flex: 1 }}>
-        <DraggableFlatList
-          data={tasks}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          onRefresh={fetchTasks}
-          refreshing={loading}
-          contentContainerStyle={{ paddingBottom: 120 }}
-          onDragEnd={handleDragEnd}
-        />
-      </View>
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        onRefresh={fetchTasks}
+        refreshing={loading}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      />
 
-      {/* Floating Add Task button like screenshot */}
+      {/* Floating Add Task button */}
       <View
         pointerEvents="box-none"
         style={{
@@ -240,7 +217,10 @@ export default function Tasks() {
         }}
       >
         <TouchableOpacity
-          onPress={() => setAddVisible(true)}
+          onPress={() => {
+            console.log('Add Task pressed');
+            setAddVisible(true);
+          }}
           style={{
             backgroundColor: COLORS.primary,
             paddingHorizontal: 26,
