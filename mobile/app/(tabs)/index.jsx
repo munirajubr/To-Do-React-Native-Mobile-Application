@@ -275,7 +275,7 @@ export default function Tasks() {
             backgroundColor: COLORS.primary,
             paddingHorizontal: 26,
             paddingVertical: 12,
-            borderRadius: 20,
+            borderRadius: 15,
             flexDirection: "row",
             alignItems: "center",
             shadowColor: COLORS.black,

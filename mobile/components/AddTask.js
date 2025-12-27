@@ -240,7 +240,7 @@ export default function AddTask({ username, visible, onClose, onSuccess }) {
             style={{
               marginTop: 24,
               backgroundColor: COLORS.primary,
-              borderRadius: 16,
+              borderRadius: 15,
               paddingVertical: 12,
               alignItems: 'center',
               opacity: submitting ? 0.7 : 1,
