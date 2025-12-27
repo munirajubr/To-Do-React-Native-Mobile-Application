@@ -11,6 +11,8 @@ import { useAuthStore } from '../../store/authStore';
 import { endpoints } from '../../constants/api';
 import COLORS from '../../constants/colors';
 import AddTask from '../../components/AddTask';
+import { useRouter } from 'expo-router';
+
 
 export default function Tasks() {
   const user = useAuthStore((s) => s.user);
@@ -20,6 +22,7 @@ export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addVisible, setAddVisible] = useState(false);
+  const router = useRouter();
 
   const fetchTasks = useCallback(async () => {
     if (!username) return;
@@ -177,7 +180,7 @@ export default function Tasks() {
         </View>
 
         <TouchableOpacity
-          onPress={logout}
+          onPress={() => router.push('/profile')}
           style={{
             width: 36,
             height: 36,
