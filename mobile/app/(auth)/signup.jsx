@@ -68,7 +68,7 @@ export default function Signup() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="johndoe"
+                  placeholder="username"
                   placeholderTextColor={COLORS.placeholderText}
                   value={username}
                   onChangeText={setUsername}
@@ -89,7 +89,7 @@ export default function Signup() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="johndoe@gmail.com"
+                  placeholder="example@gmail.com"
                   value={email}
                   placeholderTextColor={COLORS.placeholderText}
                   onChangeText={setEmail}
