@@ -1,4 +1,3 @@
-// components/TaskDetails.js
 import React from "react";
 import {
   View,
@@ -62,7 +61,7 @@ export default function TaskDetails({ visible, task, onClose, onDelete }) {
             style={styles.deleteButton}
           >
             <Ionicons name="trash-outline" size={18} color="#ff3b3b" />
-            <Text style={styles.deleteText}>Delete Task</Text>
+            <Text style={styles.deleteText}>Delete</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -95,12 +94,12 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
   },
   label: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
     marginTop: 10,
   },
   value: {
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.textDark,
     marginTop: 4,
   },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { View, Text, Alert, TouchableOpacity, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/authStore";
@@ -10,8 +10,8 @@ import { useRouter } from "expo-router";
 
 export default function Tasks() {
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const username = user?.username;
+  const logout = useAuthStore((s) => s.logout);
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -93,7 +93,7 @@ export default function Tasks() {
     setDetailsVisible(true);
   };
 
-  const renderItem = ({ item }) => {
+  const renderTaskItem = ({ item }) => {
     const completed = item.status === "completed";
 
     return (
@@ -103,7 +103,7 @@ export default function Tasks() {
       >
         <View
           style={{
-            backgroundColor: "#f6f6f8", // light grey pill
+            backgroundColor: "#f6f6f8",
             borderRadius: 14,
             paddingVertical: 10,
             paddingHorizontal: 12,
@@ -146,7 +146,7 @@ export default function Tasks() {
             </Text>
           </View>
 
-          {/* Burger / reorder icon (no delete here) */}
+          {/* Burger icon (visual only) */}
           <View
             style={{ marginLeft: 8, paddingHorizontal: 4, paddingVertical: 4 }}
           >
@@ -160,6 +160,16 @@ export default function Tasks() {
       </TouchableOpacity>
     );
   };
+
+  // Split into pending and completed lists
+  const pendingTasks = useMemo(
+    () => tasks.filter((t) => t.status !== "completed"),
+    [tasks]
+  );
+  const completedTasks = useMemo(
+    () => tasks.filter((t) => t.status === "completed"),
+    [tasks]
+  );
 
   return (
     <View
@@ -214,15 +224,41 @@ export default function Tasks() {
         </TouchableOpacity>
       </View>
 
-      {/* Tasks list */}
+      {/* Wrap both lists in one scroll view via FlatList footer */}
       <FlatList
-        data={tasks}
+        data={pendingTasks}
         keyExtractor={(item) => item._id}
-        renderItem={renderItem}
-        onRefresh={fetchTasks}
+        renderItem={renderTaskItem}
         refreshing={loading}
+        onRefresh={fetchTasks}
+        ListFooterComponent={
+          <>
+            {/* Completed header */}
+            {completedTasks.length > 0 && (
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  color: COLORS.textDark,
+                  marginTop: 12,
+                  marginBottom: 6,
+                }}
+              >
+                Completed
+              </Text>
+            )}
+
+            {/* Completed list */}
+            {completedTasks.map((task) => (
+              <React.Fragment key={task._id}>
+                {renderTaskItem({ item: task })}
+              </React.Fragment>
+            ))}
+          </>
+        }
         contentContainerStyle={{ paddingBottom: 120 }}
       />
+
 
       {/* Floating Add Task button */}
       <View
@@ -234,10 +270,7 @@ export default function Tasks() {
         }}
       >
         <TouchableOpacity
-          onPress={() => {
-            console.log("Add Task pressed");
-            setAddVisible(true);
-          }}
+          onPress={() => setAddVisible(true)}
           style={{
             backgroundColor: COLORS.primary,
             paddingHorizontal: 26,
